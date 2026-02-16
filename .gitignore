@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Data & weights (too large for git)
+data/raw/
+data/processed/
+data/videos/
+weights/
+checkpoints/
+
+# ONNX models
+*.onnx
+
+# Experiment tracking
+wandb/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

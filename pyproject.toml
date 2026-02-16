@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "pitchvision"
+version = "0.1.0"
+description = "Automated football scouting agent — on-ball events + off-ball intent from tactical cam video"
+requires-python = ">=3.10"
+
+dependencies = [
+    # Core ML — the ONLY ML framework. Everything built on this.
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",        # only for pretrained backbone weights
+
+    # Math (no ML libraries — just linear algebra and optimization)
+    "scipy>=1.12.0",              # only scipy.optimize.linear_sum_assignment
+    "numpy>=1.26.0",
+    "ruptures>=1.1.9",            # changepoint detection for trajectory segmentation
+
+    # Image/Video I/O only — no ML from opencv
+    "opencv-python-headless>=4.9.0",
+
+    # Datasets
+    "SoccerNet>=0.9.0",
+    "statsbombpy>=1.11.0",
+
+    # ONNX export + inference
+    "onnx>=1.16.0",
+    "onnxruntime-gpu>=1.17.0",
+
+    # Serving
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "websockets>=12.0",
+
+    # Experiment tracking
+    "wandb>=0.16.0",
+
+    # Config
+    "pyyaml>=6.0",
+
+    # Visualization
+    "matplotlib>=3.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.29.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["pitchvision*", "server*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
