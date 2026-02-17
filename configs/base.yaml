@@ -1,0 +1,27 @@
+model:
+  d_model: 128
+  num_heads: 8
+  num_layers: 6
+  ffn_dim: 512
+  num_players: 22            # both teams
+  num_frames: 5
+  num_roles: 7               # GK, CB, FB, CM, AM, W, ST
+  num_directions: 8          # N NE E SE S SW W NW
+  num_intents: 5             # support, press, space, hold, unknown
+  dropout: 0.1
+
+token:
+  fourier_bands: 8
+  kinematic_dim: 4           # vx, vy, speed, acceleration
+
+training:
+  seed: 42
+  precision: fp32
+  gradient_clip: 1.0
+
+data:
+  field_length: 105.0        # meters
+  field_width: 68.0
+  tracking_hz: 10            # SoccerNet is 10Hz
+  min_run_duration: 0.4      # seconds
+  causal_window: 0.5         # seconds
