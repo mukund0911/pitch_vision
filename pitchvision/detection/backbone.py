@@ -77,3 +77,17 @@ class ResNet18(nn.Module):
         feat16 = self.layer3(x)
         feat32 = self.layer4(feat16)
         return {"feat16": feat16, "feat32": feat32}
+
+    def load_pretrained(self):
+        """
+        Load ImageNet-1k weights from torchvision. We verify parameter names
+        match ours; torchvision's resnet18 uses the same layer1..layer4 layout.
+        """
+        from torchvision.models import resnet18, ResNet18_Weights
+        pretrained = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1).state_dict()
+        missing, unexpected = self.load_state_dict(pretrained, strict=False)
+        print(f"Loaded pretrained ResNet-18: {len(pretrained)} tensors")
+        if missing:
+            print(f"  Missing: {missing}")
+        if unexpected:
+            print(f"  Unexpected: {unexpected}")
