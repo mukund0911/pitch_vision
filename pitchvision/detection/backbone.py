@@ -39,8 +39,8 @@ class BasicBlock(nn.Module):
         identity = x if self.downsample is None else self.downsample(x)
 
         out = self.relu(self.bn1(self.conv1(x)))
-        out = self.relu(self.bn2(self.conv2(out)))
-        out = out + identity
+        out = self.bn2(self.conv2(out))
+        out = self.relu(out + identity)
         return out
 
 
