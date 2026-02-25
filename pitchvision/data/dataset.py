@@ -39,12 +39,15 @@ ROLE_MAP = {"GK": 0, "CB": 1, "FB": 2, "CM": 3, "AM": 4, "W": 5, "ST": 6}
 class SoccerIntentDataset(Dataset):
     def __init__(self, episodes_dir: str, split: str = "train",
                  augment=None, num_frames: int = 5, num_players: int = 22,
-                 kinematic_dim: int = 4):
+                 kinematic_dim: int = 4, field_length: float = 105.0,
+                 field_width: float = 68.0):
         self.episodes_dir = Path(episodes_dir)
         self.augment = augment
         self.num_frames = num_frames
         self.num_players = num_players
         self.kinematic_dim = kinematic_dim
+        self.field_length = field_length
+        self.field_width = field_width
 
         split_file = self.episodes_dir.parent / "splits" / f"{split}.json"
         with open(split_file) as f:
@@ -70,11 +73,11 @@ class SoccerIntentDataset(Dataset):
         for fi, frame in enumerate(frames):
             ball = frame.get("ball")
             if ball is not None:
-                pos_seq[fi, 0] = torch.tensor(ball["pos"], dtype=torch.float32)
+                pos_seq[fi, 0] = torch.tensor(self._norm_pos(ball["pos"]))
                 valid_mask[fi, 0] = True
 
             for pi, player in enumerate(frame.get("players", [])[:N]):
-                pos_seq[fi, pi + 1] = torch.tensor(player["pos"], dtype=torch.float32)
+                pos_seq[fi, pi + 1] = torch.tensor(self._norm_pos(player["pos"]))
                 kin_seq[fi, pi] = self._kin_vec(player)
                 role_seq[fi, pi] = ROLE_MAP.get(player.get("role", "CM"), 3)
                 valid_mask[fi, pi + 1] = True
@@ -99,6 +102,11 @@ class SoccerIntentDataset(Dataset):
             "next_pos": torch.tensor(lbl["next_pos"], dtype=torch.float32),
             "causal_dist": causal,
         }
+
+    def _norm_pos(self, pos):
+        # Normalize to roughly [-1, 1] over field extent.
+        return [pos[0] / (self.field_length / 2),
+                pos[1] / (self.field_width / 2)]
 
     def _kin_vec(self, player: dict) -> torch.Tensor:
         vx = float(player.get("velocity", [0.0, 0.0])[0])
