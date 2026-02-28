@@ -65,9 +65,10 @@ class YOLOHead(nn.Module):
         grid_x = grid_x.view(1, S, S, 1)
         grid_y = grid_y.view(1, S, S, 1)
 
-        # Pixel-space centers and sizes.
-        bx = (tx + grid_x) * stride
-        by = (ty + grid_y) * stride
+        # Pixel-space centers and sizes. sigmoid on xy so the offset stays
+        # inside the grid cell (otherwise boxes drift to neighbouring cells).
+        bx = (torch.sigmoid(tx) + grid_x) * stride
+        by = (torch.sigmoid(ty) + grid_y) * stride
         bw = torch.exp(tw.clamp(max=6.0)) * stride
         bh = torch.exp(th.clamp(max=6.0)) * stride
         obj = torch.sigmoid(to)
