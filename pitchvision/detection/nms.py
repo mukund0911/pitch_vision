@@ -13,10 +13,17 @@ import torch
 def compute_iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
     """
     Pairwise IoU between two sets of boxes in [x1, y1, x2, y2] format.
+
+    Args:
+        boxes1: (N, 4)
+        boxes2: (M, 4)
+    Returns:
+        (N, M) tensor of IoU values in [0, 1].
     """
     area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
     area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
 
+    # Pairwise intersection corners via broadcasting (N, 1, 4) vs (1, M, 4)
     inter_x1 = torch.max(boxes1[:, None, 0], boxes2[None, :, 0])
     inter_y1 = torch.max(boxes1[:, None, 1], boxes2[None, :, 1])
     inter_x2 = torch.min(boxes1[:, None, 2], boxes2[None, :, 2])
@@ -31,30 +38,26 @@ def compute_iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
 
 
 def nms(boxes: torch.Tensor, scores: torch.Tensor,
-        iou_threshold: float = 0.5,
-        conf_threshold: float = 0.3) -> torch.Tensor:
+        iou_threshold: float = 0.5) -> torch.Tensor:
     """
-    Greedy NMS with a confidence threshold.
+    Greedy non-maximum suppression.
 
-    Returns the indices of the boxes to keep.
+    Args:
+        boxes: (N, 4) boxes in [x1, y1, x2, y2].
+        scores: (N,) confidence scores.
+        iou_threshold: boxes with IoU above this value are suppressed.
+    Returns:
+        (K,) LongTensor of indices to keep.
     """
     if boxes.numel() == 0:
         return torch.empty(0, dtype=torch.long)
-
-    keep_mask = scores >= conf_threshold
-    if not keep_mask.any():
-        return torch.empty(0, dtype=torch.long)
-
-    surviving = torch.nonzero(keep_mask, as_tuple=False).squeeze(1)
-    boxes = boxes[surviving]
-    scores = scores[surviving]
 
     order = torch.argsort(scores, descending=True)
     keep = []
 
     while order.numel() > 0:
         i = order[0].item()
-        keep.append(surviving[i].item())
+        keep.append(i)
         if order.numel() == 1:
             break
         remaining = order[1:]
@@ -62,3 +65,40 @@ def nms(boxes: torch.Tensor, scores: torch.Tensor,
         order = remaining[ious <= iou_threshold]
 
     return torch.tensor(keep, dtype=torch.long)
+
+
+def multiclass_nms(boxes: torch.Tensor, scores: torch.Tensor,
+                   class_ids: torch.Tensor, iou_threshold: float = 0.5,
+                   conf_threshold: float = 0.3) -> tuple:
+    """
+    Per-class NMS so that e.g. a person box doesn't suppress an overlapping ball.
+
+    Args:
+        boxes: (N, 4)
+        scores: (N,)
+        class_ids: (N,) class label per box
+    Returns:
+        (kept_boxes, kept_scores, kept_class_ids)
+    """
+    # Confidence threshold first — cheaper than running NMS on low-conf noise.
+    conf_mask = scores >= conf_threshold
+    boxes = boxes[conf_mask]
+    scores = scores[conf_mask]
+    class_ids = class_ids[conf_mask]
+
+    if boxes.numel() == 0:
+        return (torch.empty(0, 4), torch.empty(0), torch.empty(0, dtype=torch.long))
+
+    kept_boxes, kept_scores, kept_classes = [], [], []
+    for c in class_ids.unique():
+        mask = class_ids == c
+        cls_boxes = boxes[mask]
+        cls_scores = scores[mask]
+        keep_idx = nms(cls_boxes, cls_scores, iou_threshold)
+        kept_boxes.append(cls_boxes[keep_idx])
+        kept_scores.append(cls_scores[keep_idx])
+        kept_classes.append(torch.full((keep_idx.numel(),), c.item(), dtype=torch.long))
+
+    return (torch.cat(kept_boxes, dim=0),
+            torch.cat(kept_scores, dim=0),
+            torch.cat(kept_classes, dim=0))

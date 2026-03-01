@@ -9,7 +9,7 @@ import torch.nn as nn
 
 from .backbone import ResNet18
 from .head import YOLOHead
-from .nms import nms
+from .nms import multiclass_nms
 
 
 class Detector(nn.Module):
@@ -46,15 +46,15 @@ class Detector(nn.Module):
         decoded = self.head.decode(raw, img_size=self.img_size)
 
         flat = decoded.view(-1, 6)
-        boxes = flat[:, :4].cpu()
-        scores = flat[:, 4].cpu()
-        class_ids = flat[:, 5].long().cpu()
+        boxes = flat[:, :4]
+        scores = flat[:, 4]
+        class_ids = flat[:, 5].long()
 
-        keep = nms(boxes, scores, iou_threshold=self.nms_threshold,
-                   conf_threshold=self.conf_threshold)
-        kept_boxes = boxes[keep]
-        kept_scores = scores[keep]
-        kept_classes = class_ids[keep]
+        kept_boxes, kept_scores, kept_classes = multiclass_nms(
+            boxes.cpu(), scores.cpu(), class_ids.cpu(),
+            iou_threshold=self.nms_threshold,
+            conf_threshold=self.conf_threshold,
+        )
 
         scale_x = orig_w / self.img_size
         scale_y = orig_h / self.img_size
