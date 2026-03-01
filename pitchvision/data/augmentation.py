@@ -33,6 +33,8 @@ class TacticalAugmentation:
                 f["ball"]["pos"][0] = -f["ball"]["pos"][0]
             for p in f.get("players", []):
                 p["pos"][0] = -p["pos"][0]
+                if "velocity" in p:
+                    p["velocity"][0] = -p["velocity"][0]
 
     def _velocity_noise(self, frames):
         if self.velocity_noise <= 0:
