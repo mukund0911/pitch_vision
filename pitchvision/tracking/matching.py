@@ -73,9 +73,7 @@ def hungarian_match(cost_matrix: np.ndarray, max_cost: float = INF_COST - 1) -> 
     if N == 0 or M == 0:
         return [], list(range(N)), list(range(M))
 
-    # scipy's solver minimizes; we want the cheapest (best) match per row.
-    # Passing -cost_matrix turns it into a maximization of "closeness".
-    row_idx, col_idx = linear_sum_assignment(-cost_matrix)
+    row_idx, col_idx = linear_sum_assignment(cost_matrix)
 
     matches = []
     matched_rows, matched_cols = set(), set()
