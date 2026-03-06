@@ -41,7 +41,8 @@ class ReIDNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x).flatten(1)
-        return self.fc(x)
+        x = self.fc(x)
+        return F.normalize(x, p=2, dim=1)
 
     @torch.no_grad()
     def extract(self, crops: list) -> np.ndarray:
