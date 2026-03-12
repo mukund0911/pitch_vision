@@ -19,6 +19,7 @@ class MultiHeadAttention(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.head_dim = d_model // num_heads
+        self.scale = self.head_dim ** -0.5
 
         # Single QKV projection is a little faster than three Linears.
         self.qkv = nn.Linear(d_model, d_model * 3)
@@ -44,7 +45,7 @@ class MultiHeadAttention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]                 # each (B, H, N, head_dim)
 
         # (B, H, N, N)
-        scores = q @ k.transpose(-2, -1)
+        scores = (q @ k.transpose(-2, -1)) * self.scale
 
         if mask is not None:
             # Mask over keys: shape (B, 1, 1, N) so it broadcasts across heads/queries.
