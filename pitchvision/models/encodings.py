@@ -25,8 +25,8 @@ class FourierPositionalEncoding(nn.Module):
         super().__init__()
         self.in_dim = in_dim
         self.num_bands = num_bands
-        # Learnable frequency matrix — let the model learn its own bandwidth.
-        self.B = nn.Parameter(torch.randn(in_dim, num_bands) * scale)
+        # Random frequencies — frozen, not learned. Scale controls bandwidth.
+        self.register_buffer("B", torch.randn(in_dim, num_bands) * scale)
         self.proj = nn.Linear(num_bands * 2, out_dim)
 
     def forward(self, coords: torch.Tensor) -> torch.Tensor:
