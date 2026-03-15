@@ -48,8 +48,7 @@ class IntentTotalLoss(nn.Module):
 
         l_dir = F.cross_entropy(pred["dir_logits"][idx, tp], target["direction"])
         l_intent = self.focal(pred["intent_logits"][idx, tp], target["intent"])
-        l_urg = F.binary_cross_entropy_with_logits(
-            torch.sigmoid(pred["urgency"][idx, tp]), target["urgency"])
+        l_urg = F.binary_cross_entropy(pred["urgency"][idx, tp], target["urgency"])
         l_pos = F.smooth_l1_loss(pred["next_pos"][idx, tp], target["next_pos"])
         l_attn = F.kl_div(
             (pred["attn_rollout"] + 1e-8).log(),
