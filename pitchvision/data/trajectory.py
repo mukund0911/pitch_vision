@@ -1,18 +1,17 @@
 """
-Trajectory segmentation.
+Trajectory segmentation via changepoint detection.
 
-Splits a continuous player track into atomic movement episodes by looking for
-points where the player's speed crosses a threshold — each crossing starts a
-new segment. Simple but lets us prototype the weak labeler end-to-end.
+Splits a continuous player track into atomic movement episodes by finding
+changepoints in the speed signal. Each segment represents a roughly
+consistent movement (e.g., "jogging north-east for 1.2s").
+
+Uses PELT (ruptures library).
 """
 
 from dataclasses import dataclass
 from typing import List
 
 import numpy as np
-
-
-SPEED_THRESHOLD = 1.5   # m/s — walk/jog boundary
 
 
 @dataclass
@@ -26,36 +25,40 @@ class TrajectorySegment:
 
 
 class TrajectorySegmenter:
-    def __init__(self, min_duration_s: float = 0.4, tracking_hz: int = 10):
+    def __init__(self, min_duration_s: float = 0.4, tracking_hz: int = 10,
+                 penalty: float = 3.0):
         self.min_frames = max(2, int(min_duration_s * tracking_hz))
+        self.penalty = penalty
         self.hz = tracking_hz
 
     def segment(self, positions: np.ndarray, player_id: int,
                 match_id: str) -> List[TrajectorySegment]:
+        """
+        Args:
+            positions: (T, 2) array of (x, y) field coordinates.
+        """
         if len(positions) < self.min_frames:
             return []
 
-        velocities = np.gradient(positions, axis=0) * self.hz
-        speed = np.linalg.norm(velocities, axis=1)
+        import ruptures as rpt
 
-        # Every time speed crosses the threshold we split the track.
-        above = speed > SPEED_THRESHOLD
-        breakpoints = [0]
-        for i in range(1, len(above)):
-            if above[i] != above[i - 1]:
-                breakpoints.append(i)
-        breakpoints.append(len(positions))
+        velocities = np.gradient(positions, axis=0) * self.hz
+        speed = np.linalg.norm(velocities, axis=1).reshape(-1, 1)
+
+        algo = rpt.Pelt(model="rbf", min_size=self.min_frames, jump=1).fit(speed)
+        breakpoints = algo.predict(pen=self.penalty)
 
         segments: List[TrajectorySegment] = []
-        for start, end in zip(breakpoints[:-1], breakpoints[1:]):
-            if end - start < self.min_frames:
-                continue
-            segments.append(TrajectorySegment(
-                player_id=player_id,
-                match_id=match_id,
-                start_frame=start,
-                end_frame=end,
-                positions=positions[start:end].copy(),
-                velocities=velocities[start:end].copy(),
-            ))
+        prev = 0
+        for bp in breakpoints:
+            if bp - prev >= self.min_frames:
+                segments.append(TrajectorySegment(
+                    player_id=player_id,
+                    match_id=match_id,
+                    start_frame=prev,
+                    end_frame=bp,
+                    positions=positions[prev:bp].copy(),
+                    velocities=velocities[prev:bp].copy(),
+                ))
+            prev = bp
         return segments
