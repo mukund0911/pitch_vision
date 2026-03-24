@@ -89,10 +89,11 @@ class HomographyEstimator:
         src = np.array(pixel_points, dtype=np.float32)
         dst = np.array(field_coords, dtype=np.float32)
 
-        self.H, _ = cv2.findHomography(src, dst)
-        self.H_inv, _ = cv2.findHomography(dst, src)
+        self.H, mask = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+        self.H_inv, _ = cv2.findHomography(dst, src, cv2.RANSAC, 5.0)
 
-        print(f"Homography calibrated from {len(pixel_points)} points")
+        inliers = mask.sum() if mask is not None else len(pixel_points)
+        print(f"Homography calibrated: {inliers}/{len(pixel_points)} inliers")
 
     def calibrate_from_points(self, pixel_points: list, field_points: list):
         """
@@ -108,8 +109,8 @@ class HomographyEstimator:
         src = np.array(pixel_points, dtype=np.float32)
         dst = np.array(field_points, dtype=np.float32)
 
-        self.H, _ = cv2.findHomography(src, dst)
-        self.H_inv, _ = cv2.findHomography(dst, src)
+        self.H, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+        self.H_inv, _ = cv2.findHomography(dst, src, cv2.RANSAC, 5.0)
 
     def pixel_to_field(self, pixel_coords: list) -> np.ndarray:
         """
