@@ -166,9 +166,8 @@ class VideoProcessor:
     def _process_frame(self, frame: np.ndarray, frame_idx: int,
                        fps: float) -> dict:
         """Process a single frame through detect → track → homography."""
-        # Detector was trained on RGB — convert before passing.
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        detections = self.detector.detect(rgb_frame)
+        # Detect players and ball
+        detections = self.detector.detect(frame)
 
         # Track players (assigns persistent IDs)
         tracks = self.tracker.update(detections["players"], frame)
