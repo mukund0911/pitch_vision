@@ -1,0 +1,46 @@
+# Inherits from base.yaml (merged at load time)
+
+model:
+  d_model: 128
+  num_heads: 8
+  num_layers: 6
+  ffn_dim: 512
+  num_players: 22
+  num_frames: 5
+  num_roles: 7
+  num_directions: 8
+  num_intents: 5
+  dropout: 0.1
+
+token:
+  fourier_bands: 8
+  kinematic_dim: 4
+
+training:
+  seed: 42
+  epochs: 30
+  batch_size: 64             # 4090 can handle 128, use 64 to be safe
+  lr: 5.0e-5
+  weight_decay: 0.01
+  gradient_clip: 1.0
+  precision: fp32
+  output_dir: "checkpoints/"
+  pretrain_ckpt: null        # set to "checkpoints/pretrain_best.pt" after Stage 1
+
+data:
+  field_length: 105.0
+  field_width: 68.0
+  tracking_hz: 10
+  min_run_duration: 0.4
+  causal_window: 0.5
+  episodes_dir: "data/processed/episodes/"
+  num_workers: 4
+
+intent_class_weights: [1.0, 1.2, 2.1, 0.8, 0.5]
+
+loss_weights:
+  direction: 0.30
+  intent: 0.30
+  urgency: 0.10
+  pos: 0.20
+  attn: 0.10
