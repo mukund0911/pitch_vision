@@ -58,10 +58,11 @@ class Detector(nn.Module):
 
         scale_x = orig_w / self.img_size
         scale_y = orig_h / self.img_size
-        kept_boxes[:, [0, 2]] *= scale_x
-        kept_boxes[:, [1, 3]] *= scale_y
-        kept_boxes[:, [0, 2]] = kept_boxes[:, [0, 2]].clamp(0, orig_w - 1)
-        kept_boxes[:, [1, 3]] = kept_boxes[:, [1, 3]].clamp(0, orig_h - 1)
+        if kept_boxes.numel() > 0:
+            kept_boxes[:, [0, 2]] *= scale_x
+            kept_boxes[:, [1, 3]] *= scale_y
+            kept_boxes[:, [0, 2]] = kept_boxes[:, [0, 2]].clamp(0, orig_w - 1)
+            kept_boxes[:, [1, 3]] = kept_boxes[:, [1, 3]].clamp(0, orig_h - 1)
 
         players, ball = [], None
         for box, score, cid in zip(kept_boxes.tolist(), kept_scores.tolist(),
