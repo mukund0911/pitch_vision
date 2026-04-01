@@ -17,6 +17,11 @@ checkpoints/
 
 # Experiment tracking
 wandb/
+*.log
+
+# Notebooks & scratch
+notebooks/
+scratch/
 
 # IDE
 .vscode/
